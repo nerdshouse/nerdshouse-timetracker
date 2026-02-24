@@ -23,16 +23,15 @@ export async function GET(request: NextRequest) {
       topUps: typeof topUps;
       totalHours: number;
     };
-    const initial: Record<string, ByClientItem> = {};
-    const byClient = topUps.reduce<Record<string, ByClientItem>>(
-      (acc, t) => {
+    const byClient = topUps.reduce(
+      (acc: Record<string, ByClientItem>, t): Record<string, ByClientItem> => {
         const id = t.clientId;
         if (!acc[id]) acc[id] = { client: t.client, topUps: [], totalHours: 0 };
         acc[id].topUps.push(t);
         acc[id].totalHours += t.hours;
         return acc;
       },
-      initial,
+      {} as Record<string, ByClientItem>,
     );
     return NextResponse.json({ topUps, byClient: Object.values(byClient) });
   }
