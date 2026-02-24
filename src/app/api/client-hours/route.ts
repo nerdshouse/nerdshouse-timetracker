@@ -18,13 +18,18 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
       include: { client: { select: { id: true, name: true } } },
     });
-    const byClient = topUps.reduce((acc, t) => {
+    type ByClientItem = {
+      client: { id: string; name: string };
+      topUps: typeof topUps;
+      totalHours: number;
+    };
+    const byClient = topUps.reduce((acc: Record<string, ByClientItem>, t) => {
       const id = t.clientId;
       if (!acc[id]) acc[id] = { client: t.client, topUps: [], totalHours: 0 };
       acc[id].topUps.push(t);
       acc[id].totalHours += t.hours;
       return acc;
-    }, {} as Record<string, { client: { id: string; name: string }; topUps: typeof topUps; totalHours: number }>);
+    }, {} as Record<string, ByClientItem>);
     return NextResponse.json({ topUps, byClient: Object.values(byClient) });
   }
 
