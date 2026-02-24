@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       totalHours: number;
     };
     const byClient = topUps.reduce(
-      (acc: Record<string, ByClientItem>, t): Record<string, ByClientItem> => {
+      (acc: Record<string, ByClientItem>, t: (typeof topUps)[number]): Record<string, ByClientItem> => {
         const id = t.clientId;
         if (!acc[id]) acc[id] = { client: t.client, topUps: [], totalHours: 0 };
         acc[id].topUps.push(t);
