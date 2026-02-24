@@ -8,7 +8,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { StatusBadge, PriorityBadge } from "@/components/ui/badges";
 import { LiveTimer } from "@/components/ui/LiveTimer";
 import { Modal } from "@/components/ui/Modal";
-import { formatDuration, msToHours } from "@/lib/utils/format";
+import { formatDuration } from "@/lib/utils/format";
 
 const POMODORO_WORK_MS = 25 * 60 * 1000;
 
@@ -42,10 +42,14 @@ export function DeveloperDashboard({ session }: { session: SessionPayload }) {
   const [logTimeOpen, setLogTimeOpen] = useState(false);
   const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
   const [pomodoroTick, setPomodoroTick] = useState(0);
-  const pomodoroStartRef = useRef<number | null>(null);
+  const [tickNow, setTickNow] = useState(0);
+  const [pomodoroStartMs, setPomodoroStartMs] = useState<number | null>(null);
   useEffect(() => {
     if (!pomodoroEnabled || !timers.length) return;
-    const id = setInterval(() => setPomodoroTick((n) => n + 1), 1000);
+    const id = setInterval(() => {
+      setPomodoroTick((n) => n + 1);
+      setTickNow(Date.now());
+    }, 1000);
     return () => clearInterval(id);
   }, [pomodoroEnabled, timers.length]);
 
@@ -70,36 +74,28 @@ export function DeveloperDashboard({ session }: { session: SessionPayload }) {
   const myTimers = timers.filter((t) => t.user.id === session.userId);
   const myTasks = projects.flatMap((p) => p.tasks);
   const activeTimer = myTimers[0];
-  const pomodoroElapsed = activeTimer && pomodoroStartRef.current != null
-    ? Math.min(Date.now() - pomodoroStartRef.current, POMODORO_WORK_MS)
+  const pomodoroElapsed = activeTimer && pomodoroStartMs != null
+    ? Math.min(tickNow - pomodoroStartMs, POMODORO_WORK_MS)
     : 0;
   const pomodoroRemaining = Math.max(0, POMODORO_WORK_MS - pomodoroElapsed);
-  void pomodoroTick; // drive re-renders for countdown
+  void pomodoroTick;
 
   useEffect(() => {
-    if (!pomodoroEnabled || !activeTimer) pomodoroStartRef.current = null;
-    else if (pomodoroStartRef.current == null) pomodoroStartRef.current = Date.now();
-  }, [pomodoroEnabled, activeTimer?.taskId]);
+    if (!pomodoroEnabled || !activeTimer) {
+      const t = setTimeout(() => setPomodoroStartMs(null), 0);
+      return () => clearTimeout(t);
+    }
+    if (pomodoroStartMs == null) {
+      const now = Date.now();
+      const t = setTimeout(() => {
+        setPomodoroStartMs(now);
+        setTickNow(now);
+      }, 0);
+      return () => clearTimeout(t);
+    }
+  }, [pomodoroEnabled, activeTimer, pomodoroStartMs]);
 
   const pomodoroFiredRef = useRef(false);
-  useEffect(() => {
-    if (!pomodoroEnabled || !activeTimer || pomodoroRemaining > 0) {
-      if (pomodoroRemaining > 0) pomodoroFiredRef.current = false;
-      return;
-    }
-    if (pomodoroFiredRef.current) return;
-    pomodoroFiredRef.current = true;
-    timerAction("stop", activeTimer.taskId);
-    setPomodoroEnabled(false);
-    pomodoroStartRef.current = null;
-  }, [pomodoroRemaining, pomodoroEnabled, activeTimer?.taskId]);
-  const totalTimeMs = myTasks.reduce(
-    (s, t) => s + t.timeLogs.reduce((a, l) => a + l.durationMs, 0),
-    0
-  );
-  const filteredProjects = filterProject
-    ? projects.filter((p) => p.id === filterProject)
-    : projects;
 
   async function timerAction(action: string, taskId: string) {
     await fetch("/api/timers", {
@@ -111,6 +107,29 @@ export function DeveloperDashboard({ session }: { session: SessionPayload }) {
     const d = await res.json();
     setTimers(d.timers || []);
   }
+
+  useEffect(() => {
+    if (!pomodoroEnabled || !activeTimer || pomodoroRemaining > 0) {
+      if (pomodoroRemaining > 0) pomodoroFiredRef.current = false;
+      return;
+    }
+    if (pomodoroFiredRef.current) return;
+    pomodoroFiredRef.current = true;
+    const taskId = activeTimer.taskId;
+    const t = setTimeout(() => {
+      timerAction("stop", taskId);
+      setPomodoroEnabled(false);
+      setPomodoroStartMs(null);
+    }, 0);
+    return () => clearTimeout(t);
+  }, [pomodoroRemaining, pomodoroEnabled, activeTimer]);
+  const totalTimeMs = myTasks.reduce(
+    (s, t) => s + t.timeLogs.reduce((a, l) => a + l.durationMs, 0),
+    0
+  );
+  const filteredProjects = filterProject
+    ? projects.filter((p) => p.id === filterProject)
+    : projects;
 
   async function updateTaskStatus(taskId: string, status: string) {
     await fetch(`/api/tasks/${taskId}`, {

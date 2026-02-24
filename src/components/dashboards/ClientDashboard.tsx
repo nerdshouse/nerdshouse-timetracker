@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FolderKanban, CreditCard, FileText, Users, Settings } from "lucide-react";
 import type { SessionPayload } from "@/lib/auth/session";
@@ -11,7 +11,7 @@ import { LiveTimer } from "@/components/ui/LiveTimer";
 import { Modal } from "@/components/ui/Modal";
 import { TaskForm } from "@/components/forms/TaskForm";
 import { ProgressRing } from "@/components/ui/ProgressRing";
-import { formatDuration, formatCurrency, msToHours } from "@/lib/utils/format";
+import { formatDuration, msToHours } from "@/lib/utils/format";
 import { downloadProjectReportPdf, downloadClientTimeReportPdf } from "@/lib/pdf-report";
 
 type Project = {
@@ -53,14 +53,11 @@ const TABS = [
 
 export function ClientDashboard({ session }: { session: SessionPayload }) {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const tabParam = searchParams.get("tab") || "projects";
   const tab = ["projects", "report", "budget", "team", "settings"].includes(tabParam) ? tabParam : "projects";
-  const setTab = (t: string) => router.replace(`/client?tab=${t}`);
-
   const [projects, setProjects] = useState<Project[]>([]);
   const [clientHoursTotal, setClientHoursTotal] = useState<number>(0);
-  const [timers, setTimers] = useState<ActiveTimer[]>([]);
+  const [, setTimers] = useState<ActiveTimer[]>([]);
   const [assignTaskOpen, setAssignTaskOpen] = useState(false);
   const [assignTaskProjectId, setAssignTaskProjectId] = useState<string | null>(null);
   const [developers, setDevelopers] = useState<Array<{ id: string; name: string }>>([]);
@@ -205,8 +202,6 @@ export function ClientDashboard({ session }: { session: SessionPayload }) {
           <ClientReportTab
             projects={projects}
             formatDuration={formatDuration}
-            msToHours={msToHours}
-            clientName={session.name}
             onDownloadTimeReport={() => downloadClientTimeReportPdf(
               projects.map((p) => ({
                 name: p.name,
@@ -282,15 +277,11 @@ export function ClientDashboard({ session }: { session: SessionPayload }) {
 function ClientReportTab({
   projects,
   formatDuration,
-  msToHours,
-  clientName,
   onDownloadTimeReport,
   onDownloadProjectReport,
 }: {
   projects: Project[];
   formatDuration: (ms: number) => string;
-  msToHours: (ms: number) => number;
-  clientName: string;
   onDownloadTimeReport: () => void;
   onDownloadProjectReport: (projectId: string) => void;
 }) {

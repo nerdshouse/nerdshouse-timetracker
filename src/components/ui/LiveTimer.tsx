@@ -11,15 +11,14 @@ type LiveTimerProps = {
 };
 
 export function LiveTimer({ startTime, elapsedMs, running, taskTitle }: LiveTimerProps) {
-  const [displayMs, setDisplayMs] = useState(elapsedMs);
+  const [liveMs, setLiveMs] = useState(elapsedMs);
+  const displayMs = running ? liveMs : elapsedMs;
 
   useEffect(() => {
-    if (!running) {
-      setDisplayMs(elapsedMs);
-      return;
-    }
+    if (!running) return;
     const start = new Date(startTime).getTime();
-    const tick = () => setDisplayMs(elapsedMs + (Date.now() - start));
+    const tick = () => setLiveMs(elapsedMs + (Date.now() - start));
+    tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [running, startTime, elapsedMs]);

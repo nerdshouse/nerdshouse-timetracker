@@ -40,11 +40,6 @@ export async function GET(request: NextRequest) {
     take: 500,
   });
 
-  const projects = await prisma.project.findMany({
-    where: { ...(projectId ? { id: projectId } : {}) },
-    include: { client: { select: { name: true } } },
-  });
-
   type TimeLogItem = (typeof timeLogs)[number];
   type ByProjectSummary = { project: TimeLogItem["task"]["project"]; totalMs: number; entries: number };
   type ByUserWorkload = { user: { id: string; name: string; email: string }; totalMs: number; byProject: Record<string, number> };

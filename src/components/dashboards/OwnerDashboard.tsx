@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -89,15 +89,12 @@ type ActiveTimer = {
 
 export function OwnerDashboard({ session }: { session: SessionPayload }) {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const tabParam = searchParams.get("tab") || "overview";
   const tab = ["overview", "projects", "reports", "billing", "time", "activity", "audit", "team", "settings"].includes(tabParam) ? tabParam : "overview";
-  const setTab = (t: string) => router.replace(`/owner?tab=${t}`);
   const [projects, setProjects] = useState<Project[]>([]);
   const [timeLogs, setTimeLogs] = useState<TimeLog[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [timers, setTimers] = useState<ActiveTimer[]>([]);
-  const [loading, setLoading] = useState(true);
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [projectModalEdit, setProjectModalEdit] = useState<Project | null>(null);
   const [taskModalProjectId, setTaskModalProjectId] = useState<string | null>(null);
@@ -182,10 +179,6 @@ export function OwnerDashboard({ session }: { session: SessionPayload }) {
     return () => clearInterval(id);
   }, [tab]);
 
-  useEffect(() => {
-    setLoading(false);
-  }, []);
-
   const totalRevenue = projects.reduce((sum, p) => {
     const used = p.tasks.reduce((s, t) => s + t.timeLogs.reduce((a, l) => a + l.durationMs, 0), 0);
     const hours = msToHours(used);
@@ -260,7 +253,6 @@ export function OwnerDashboard({ session }: { session: SessionPayload }) {
                 onEdit={() => { setProjectModalEdit(proj); setProjectModalOpen(true); }}
                 onAddTask={() => setTaskModalProjectId(proj.id)}
                 onAddTime={() => setAddTimeProject(proj)}
-                onRefresh={refreshProjects}
               />
             ))}
             <Modal
@@ -483,20 +475,13 @@ function ProjectCard({
   onEdit,
   onAddTask,
   onAddTime,
-  onRefresh,
 }: {
   project: Project;
   onEdit: () => void;
   onAddTask: () => void;
   onAddTime: () => void;
-  onRefresh: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const hoursUsed = project.tasks.reduce(
-    (s, t) => s + t.timeLogs.reduce((a, l) => a + l.durationMs, 0),
-    0
-  );
-  const hoursUsedH = msToHours(hoursUsed);
   const contractValue = project.hourlyRate * project.totalHoursBought;
   const boughtDateStr = project.boughtDate ? new Date(project.boughtDate).toLocaleDateString() : null;
 
@@ -577,25 +562,6 @@ function ProjectCard({
   );
 }
 
-function getWeekBounds() {
-  const now = new Date();
-  const day = now.getDay();
-  const mon = new Date(now);
-  mon.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-  mon.setHours(0, 0, 0, 0);
-  const sun = new Date(mon);
-  sun.setDate(mon.getDate() + 6);
-  sun.setHours(23, 59, 59, 999);
-  return { start: mon.getTime(), end: sun.getTime() };
-}
-
-function getMonthBounds() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-  return { start: start.getTime(), end: end.getTime() };
-}
-
 function ReportsTab({
   reportType,
   reportData,
@@ -617,14 +583,14 @@ function ReportsTab({
   onFromDateChange: (v: string) => void;
   onToDateChange: (v: string) => void;
 }) {
-  const data = reportData as any[] | null;
+  const data = reportData as Array<Record<string, unknown>> | null;
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-white p-4">
         <span className="text-sm font-medium text-slate-700">Report type</span>
         <select
           value={reportType}
-          onChange={(e) => onReportTypeChange(e.target.value as any)}
+          onChange={(e) => onReportTypeChange(e.target.value as "summary" | "detailed" | "workload" | "billing" | "team")}
           className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
         >
           <option value="summary">Summary</option>
@@ -643,9 +609,10 @@ function ReportsTab({
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50"><th className="px-4 py-2 text-left">Project</th><th className="px-4 py-2 text-left">Client</th><th className="px-4 py-2 text-right">Total hours</th><th className="px-4 py-2 text-right">Entries</th></tr></thead>
             <tbody>
-              {data.map((r: { projectName: string; clientName: string; totalHours: string; entries: number }, i: number) => (
-                <tr key={i} className="border-t border-slate-100"><td className="px-4 py-2 font-medium">{r.projectName}</td><td className="px-4 py-2">{r.clientName}</td><td className="px-4 py-2 text-right font-mono">{r.totalHours}</td><td className="px-4 py-2 text-right">{r.entries}</td></tr>
-              ))}
+              {data.map((r, i) => {
+                const row = r as { projectName: string; clientName: string; totalHours: string; entries: number };
+                return (<tr key={i} className="border-t border-slate-100"><td className="px-4 py-2 font-medium">{row.projectName}</td><td className="px-4 py-2">{row.clientName}</td><td className="px-4 py-2 text-right font-mono">{row.totalHours}</td><td className="px-4 py-2 text-right">{row.entries}</td></tr>);
+              })}
             </tbody>
           </table>
         )}
@@ -653,9 +620,10 @@ function ReportsTab({
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50"><th className="px-4 py-2 text-left">Task</th><th className="px-4 py-2 text-left">Project</th><th className="px-4 py-2 text-left">User</th><th className="px-4 py-2 text-left">Start</th><th className="px-4 py-2 text-right">Duration</th><th className="px-4 py-2 text-left">Type</th></tr></thead>
             <tbody>
-              {data.map((r: { task: string; project: string; user: string; startTime: string; durationMs: number; entryType: string }) => (
-                <tr key={r.startTime + r.task} className="border-t border-slate-100"><td className="px-4 py-2">{r.task}</td><td className="px-4 py-2">{r.project}</td><td className="px-4 py-2">{r.user}</td><td className="px-4 py-2">{new Date(r.startTime).toLocaleString()}</td><td className="px-4 py-2 text-right font-mono">{formatDuration(r.durationMs)}</td><td className="px-4 py-2">{r.entryType}</td></tr>
-              ))}
+              {data.map((r) => {
+                const row = r as { task: string; project: string; user: string; startTime: string; durationMs: number; entryType: string };
+                return (<tr key={row.startTime + row.task} className="border-t border-slate-100"><td className="px-4 py-2">{row.task}</td><td className="px-4 py-2">{row.project}</td><td className="px-4 py-2">{row.user}</td><td className="px-4 py-2">{new Date(row.startTime).toLocaleString()}</td><td className="px-4 py-2 text-right font-mono">{formatDuration(row.durationMs)}</td><td className="px-4 py-2">{row.entryType}</td></tr>);
+              })}
             </tbody>
           </table>
         )}
@@ -663,9 +631,10 @@ function ReportsTab({
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50"><th className="px-4 py-2 text-left">User</th><th className="px-4 py-2 text-right">Total hours</th><th className="px-4 py-2 text-left">By project</th></tr></thead>
             <tbody>
-              {data.map((r: { userName: string; totalHours: string; byProject: Record<string, number> }, i: number) => (
-                <tr key={i} className="border-t border-slate-100"><td className="px-4 py-2 font-medium">{r.userName}</td><td className="px-4 py-2 text-right font-mono">{r.totalHours}</td><td className="px-4 py-2 text-slate-600">{Object.entries(r.byProject || {}).map(([p, ms]) => `${p}: ${formatDuration(ms)}`).join(", ")}</td></tr>
-              ))}
+              {data.map((r, i) => {
+                const row = r as { userName: string; totalHours: string; byProject: Record<string, number> };
+                return (<tr key={i} className="border-t border-slate-100"><td className="px-4 py-2 font-medium">{row.userName}</td><td className="px-4 py-2 text-right font-mono">{row.totalHours}</td><td className="px-4 py-2 text-slate-600">{Object.entries(row.byProject || {}).map(([p, ms]) => `${p}: ${formatDuration(ms)}`).join(", ")}</td></tr>);
+              })}
             </tbody>
           </table>
         )}
@@ -673,9 +642,10 @@ function ReportsTab({
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50"><th className="px-4 py-2 text-left">Project</th><th className="px-4 py-2 text-left">Client</th><th className="px-4 py-2 text-right">Hours</th><th className="px-4 py-2 text-right">Rate</th><th className="px-4 py-2 text-right">Amount</th></tr></thead>
             <tbody>
-              {data.map((r: { projectName: string; clientName: string; totalHours: number; hourlyRate: number; amount: number }, i: number) => (
-                <tr key={i} className="border-t border-slate-100"><td className="px-4 py-2 font-medium">{r.projectName}</td><td className="px-4 py-2">{r.clientName}</td><td className="px-4 py-2 text-right">{r.totalHours.toFixed(2)}</td><td className="px-4 py-2 text-right">{formatCurrency(r.hourlyRate)}</td><td className="px-4 py-2 text-right font-medium">{formatCurrency(r.amount)}</td></tr>
-              ))}
+              {data.map((r, i) => {
+                const row = r as { projectName: string; clientName: string; totalHours: number; hourlyRate: number; amount: number };
+                return (<tr key={i} className="border-t border-slate-100"><td className="px-4 py-2 font-medium">{row.projectName}</td><td className="px-4 py-2">{row.clientName}</td><td className="px-4 py-2 text-right">{row.totalHours.toFixed(2)}</td><td className="px-4 py-2 text-right">{formatCurrency(row.hourlyRate)}</td><td className="px-4 py-2 text-right font-medium">{formatCurrency(row.amount)}</td></tr>);
+              })}
             </tbody>
           </table>
         )}
@@ -683,9 +653,10 @@ function ReportsTab({
           <table className="w-full text-sm">
             <thead><tr className="bg-slate-50"><th className="px-4 py-2 text-left">User</th><th className="px-4 py-2 text-left">Email</th><th className="px-4 py-2 text-right">Total hours</th><th className="px-4 py-2 text-right">Entries</th></tr></thead>
             <tbody>
-              {data.map((r: { userName: string; userEmail: string; totalHours: string; entryCount: number }, i: number) => (
-                <tr key={i} className="border-t border-slate-100"><td className="px-4 py-2 font-medium">{r.userName}</td><td className="px-4 py-2 text-slate-600">{r.userEmail}</td><td className="px-4 py-2 text-right font-mono">{r.totalHours}</td><td className="px-4 py-2 text-right">{r.entryCount}</td></tr>
-              ))}
+              {data.map((r, i) => {
+                const row = r as { userName: string; userEmail: string; totalHours: string; entryCount: number };
+                return (<tr key={i} className="border-t border-slate-100"><td className="px-4 py-2 font-medium">{row.userName}</td><td className="px-4 py-2 text-slate-600">{row.userEmail}</td><td className="px-4 py-2 text-right font-mono">{row.totalHours}</td><td className="px-4 py-2 text-right">{row.entryCount}</td></tr>);
+              })}
             </tbody>
           </table>
         )}

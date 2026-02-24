@@ -25,7 +25,7 @@ export async function GET(
   });
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (session.role === "DEVELOPER") {
-    const hasAccess = project.tasks.some((t) => t.assignedToId === session.userId);
+    const hasAccess = project.tasks.some((t: (typeof project.tasks)[number]) => t.assignedToId === session.userId);
     if (!hasAccess) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (session.role === "CLIENT") {

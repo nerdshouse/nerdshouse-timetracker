@@ -145,7 +145,7 @@ async function main() {
     },
   });
 
-  const task3 = await prisma.task.upsert({
+  await prisma.task.upsert({
     where: { id: "seed-task-3" },
     update: {},
     create: {
