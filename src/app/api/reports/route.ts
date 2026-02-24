@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (type === "detailed") {
-    const detailed = timeLogs.map((l) => ({
+    const detailed = timeLogs.map((l: TimeLogItem) => ({
       id: l.id,
       task: l.task.title,
       project: l.task.project?.name,
