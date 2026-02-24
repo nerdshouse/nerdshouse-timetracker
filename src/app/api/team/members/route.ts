@@ -15,7 +15,7 @@ export async function GET() {
     where: { clientId: client.id },
     include: { user: { select: { id: true, name: true, email: true } } },
   });
-  return NextResponse.json({ members: members.map((m) => m.user) });
+  return NextResponse.json({ members: members.map((m: (typeof members)[number]) => m.user) });
 }
 
 export async function POST(request: NextRequest) {

@@ -29,7 +29,7 @@ function getCredential() {
 }
 
 function getAdminApp(): App {
-  const existing = getApps().find((a) => a.name === "[DEFAULT]");
+  const existing = getApps().find((a: App) => a.name === "[DEFAULT]");
   if (existing) return getApp();
   return initializeApp(
     { credential: getCredential(), projectId },

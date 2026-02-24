@@ -76,7 +76,7 @@ export async function downloadProjectReportPdf(
     doc.text("List of tasks", 14, y);
     y += 8;
     const headers = ["Task", "Developer", "Date", "Duration (Hours, Minutes)"];
-    const rows = timeLogs.map((l) => [
+    const rows = timeLogs.map((l: TimeLog) => [
       (l.task as { title?: string })?.title ?? "",
       (l.user as { name?: string })?.name ?? "",
       new Date(l.startTime).toLocaleDateString(),
@@ -145,7 +145,7 @@ export async function downloadClientTimeReportPdf(
   const headers = ["Project", "Hours bought", "Bought date"];
   const rows = projects.flatMap((p) => {
     const topUps = p.hoursTopUps && p.hoursTopUps.length > 0 ? p.hoursTopUps : [{ hours: p.totalHoursBought, boughtDate: p.boughtDate }];
-    return topUps.map((t, i) => [
+    return topUps.map((t: { hours: number; boughtDate?: string | null }, i: number) => [
       i === 0 ? p.name : "",
       String(t.hours),
       t.boughtDate ? new Date(t.boughtDate).toLocaleDateString() : "—",
