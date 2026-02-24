@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       acc[pid].entries += 1;
       return acc;
     }, {} as Record<string, ByProjectSummary>);
-    const summary = Object.values(byProject).map((s: ByProjectSummary) => ({
+    const summary = (Object.values(byProject) as ByProjectSummary[]).map((s) => ({
       projectId: s.project.id,
       projectName: s.project.name,
       clientName: s.project.client?.name,
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
       acc[uid].byProject[pname] = (acc[uid].byProject[pname] || 0) + l.durationMs;
       return acc;
     }, {} as Record<string, ByUserWorkload>);
-    const workload = Object.values(byUser).map((w: ByUserWorkload) => ({
+    const workload = (Object.values(byUser) as ByUserWorkload[]).map((w) => ({
       userId: w.user.id,
       userName: w.user.name,
       totalHours: (w.totalMs / (1000 * 60 * 60)).toFixed(2),
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
       acc[pid].totalMs += l.durationMs;
       return acc;
     }, {} as Record<string, ByProjectBilling>);
-    const billing = Object.values(byProject).map((b: ByProjectBilling) => ({
+    const billing = (Object.values(byProject) as ByProjectBilling[]).map((b) => ({
       projectId: b.project.id,
       projectName: b.project.name,
       clientName: b.project.client?.name,
@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
       acc[uid].entries.push(l);
       return acc;
     }, {} as Record<string, ByUserTeam>);
-    const team = Object.values(byUser).map((t: ByUserTeam) => ({
+    const team = (Object.values(byUser) as ByUserTeam[]).map((t) => ({
       userId: t.user.id,
       userName: t.user.name,
       userEmail: t.user.email,
