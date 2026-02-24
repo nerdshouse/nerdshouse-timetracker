@@ -65,7 +65,7 @@ export function ClientProjectDetail({ session, projectId }: { session: SessionPa
     );
   }
 
-  const totalTimeMs = timeLogs.reduce((s, l) => s + l.durationMs, 0);
+  const totalTimeMs = timeLogs.reduce((s: number, l: (typeof timeLogs)[number]) => s + l.durationMs, 0);
   const navItems = [{ href: "/client", label: "Back to Dashboard" }];
 
   return (
@@ -132,8 +132,8 @@ export function ClientProjectDetail({ session, projectId }: { session: SessionPa
               <tbody>
                 {project.tasks.map((t) => {
                   const taskMs = timeLogs
-                    .filter((l) => l.task?.id === t.id)
-                    .reduce((a, l) => a + l.durationMs, 0);
+                    .filter((l: (typeof timeLogs)[number]) => l.task?.id === t.id)
+                    .reduce((a: number, l: (typeof timeLogs)[number]) => a + l.durationMs, 0);
                   return (
                     <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                       <td className="px-4 py-3 font-medium text-slate-800">{t.title}</td>

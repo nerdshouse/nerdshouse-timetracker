@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       where: { clientId: resolved.id },
       orderBy: { createdAt: "desc" },
     });
-    const totalHours = topUps.reduce((s, t) => s + t.hours, 0);
+    const totalHours = topUps.reduce((s: number, t: (typeof topUps)[number]) => s + t.hours, 0);
     return NextResponse.json({ topUps, totalHours });
   }
 

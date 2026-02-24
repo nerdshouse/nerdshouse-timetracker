@@ -45,14 +45,20 @@ export async function GET(request: NextRequest) {
     include: { client: { select: { name: true } } },
   });
 
+  type TimeLogItem = (typeof timeLogs)[number];
+  type ByProjectSummary = { project: TimeLogItem["task"]["project"]; totalMs: number; entries: number };
+  type ByUserWorkload = { user: { id: string; name: string; email: string }; totalMs: number; byProject: Record<string, number> };
+  type ByProjectBilling = { project: TimeLogItem["task"]["project"]; totalMs: number };
+  type ByUserTeam = { user: { id: string; name: string; email: string }; totalMs: number; entries: typeof timeLogs };
+
   if (type === "summary") {
-    const byProject = timeLogs.reduce((acc, l) => {
+    const byProject = timeLogs.reduce((acc: Record<string, ByProjectSummary>, l: TimeLogItem) => {
       const pid = l.task.project.id;
       if (!acc[pid]) acc[pid] = { project: l.task.project, totalMs: 0, entries: 0 };
       acc[pid].totalMs += l.durationMs;
       acc[pid].entries += 1;
       return acc;
-    }, {} as Record<string, { project: typeof timeLogs[0]["task"]["project"]; totalMs: number; entries: number }>);
+    }, {} as Record<string, ByProjectSummary>);
     const summary = Object.values(byProject).map((s) => ({
       projectId: s.project.id,
       projectName: s.project.name,
@@ -80,14 +86,14 @@ export async function GET(request: NextRequest) {
   }
 
   if (type === "workload") {
-    const byUser = timeLogs.reduce((acc, l) => {
+    const byUser = timeLogs.reduce((acc: Record<string, ByUserWorkload>, l: TimeLogItem) => {
       const uid = l.userId;
-      if (!acc[uid]) acc[uid] = { user: l.user, totalMs: 0, byProject: {} as Record<string, number> };
+      if (!acc[uid]) acc[uid] = { user: l.user, totalMs: 0, byProject: {} };
       acc[uid].totalMs += l.durationMs;
       const pname = l.task.project?.name ?? "Other";
       acc[uid].byProject[pname] = (acc[uid].byProject[pname] || 0) + l.durationMs;
       return acc;
-    }, {} as Record<string, { user: { id: string; name: string; email: string }; totalMs: number; byProject: Record<string, number> }>);
+    }, {} as Record<string, ByUserWorkload>);
     const workload = Object.values(byUser).map((w) => ({
       userId: w.user.id,
       userName: w.user.name,
@@ -98,12 +104,12 @@ export async function GET(request: NextRequest) {
   }
 
   if (type === "billing") {
-    const byProject = timeLogs.reduce((acc, l) => {
+    const byProject = timeLogs.reduce((acc: Record<string, ByProjectBilling>, l: TimeLogItem) => {
       const pid = l.task.projectId;
       if (!acc[pid]) acc[pid] = { project: l.task.project, totalMs: 0 };
       acc[pid].totalMs += l.durationMs;
       return acc;
-    }, {} as Record<string, { project: typeof timeLogs[0]["task"]["project"]; totalMs: number }>);
+    }, {} as Record<string, ByProjectBilling>);
     const billing = Object.values(byProject).map((b) => ({
       projectId: b.project.id,
       projectName: b.project.name,
@@ -116,13 +122,13 @@ export async function GET(request: NextRequest) {
   }
 
   if (type === "team") {
-    const byUser = timeLogs.reduce((acc, l) => {
+    const byUser = timeLogs.reduce((acc: Record<string, ByUserTeam>, l: TimeLogItem) => {
       const uid = l.userId;
-      if (!acc[uid]) acc[uid] = { user: l.user, totalMs: 0, entries: [] as typeof timeLogs };
+      if (!acc[uid]) acc[uid] = { user: l.user, totalMs: 0, entries: [] };
       acc[uid].totalMs += l.durationMs;
       acc[uid].entries.push(l);
       return acc;
-    }, {} as Record<string, { user: { id: string; name: string; email: string }; totalMs: number; entries: typeof timeLogs }>);
+    }, {} as Record<string, ByUserTeam>);
     const team = Object.values(byUser).map((t) => ({
       userId: t.user.id,
       userName: t.user.name,

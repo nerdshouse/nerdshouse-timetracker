@@ -65,7 +65,7 @@ export async function downloadProjectReportPdf(
   doc.text(`Project: ${project.name}`, 14, y);
   y += 10;
 
-  const usedMs = timeLogs.reduce((s, l) => s + l.durationMs, 0);
+  const usedMs = timeLogs.reduce((s: number, l: TimeLog) => s + l.durationMs, 0);
   const totalHours = usedMs / (1000 * 60 * 60);
   doc.setFontSize(10);
   doc.text(`Total number of hours: ${totalHours.toFixed(2)}`, 14, y);
@@ -132,9 +132,11 @@ export async function downloadClientTimeReportPdf(
   doc.text("Time report", 14, y);
   y += 10;
 
-  const totalHours = projects.reduce((s, p) => {
-    const topUps = p.hoursTopUps && p.hoursTopUps.length > 0 ? p.hoursTopUps : [{ hours: p.totalHoursBought }];
-    return s + topUps.reduce((a, t) => a + t.hours, 0);
+  type ProjectItem = (typeof projects)[number];
+  type TopUpItem = { hours: number; ratePerHour?: number; boughtDate?: string | null };
+  const totalHours = projects.reduce((s: number, p: ProjectItem) => {
+    const topUps: TopUpItem[] = p.hoursTopUps && p.hoursTopUps.length > 0 ? p.hoursTopUps : [{ hours: p.totalHoursBought }];
+    return s + topUps.reduce((a: number, t: TopUpItem) => a + t.hours, 0);
   }, 0);
   doc.setFontSize(10);
   doc.text(`Total number of hours: ${totalHours.toFixed(2)}`, 14, y);
