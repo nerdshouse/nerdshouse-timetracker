@@ -7,7 +7,19 @@ const DEFAULT_PASSWORD = "password123";
 
 async function main() {
   const ownerHash = await hashPassword(DEFAULT_PASSWORD);
-  // 1 Owner, 2 Developers, 2 Clients
+
+  // Primary owner (Google Sign-In) – use this to log in first
+  const primaryOwner = await prisma.user.upsert({
+    where: { email: "axit@nerdshouse.com" },
+    update: {},
+    create: {
+      name: "Axit",
+      email: "axit@nerdshouse.com",
+      role: "OWNER",
+    },
+  });
+
+  // 1 Owner (legacy seed), 2 Developers, 2 Clients
   const owner = await prisma.user.upsert({
     where: { email: "alex@company.com" },
     update: { passwordHash: ownerHash },

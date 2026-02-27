@@ -3,8 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Clock } from "lucide-react";
-import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { getAuthInstance } from "@/lib/firebase";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,6 +13,8 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
+      const { getAuthInstance } = await import("@/lib/firebase");
+      const { signInWithPopup, GoogleAuthProvider } = await import("firebase/auth");
       const auth = getAuthInstance();
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);

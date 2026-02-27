@@ -1,5 +1,6 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getFirestore, type Firestore } from "firebase/firestore";
+import { getAuth, type Auth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "AIzaSyA2Mma5kfiRvG4bUwdY18XtmH_bdDcVL4U",
@@ -17,6 +18,7 @@ function getApp(): FirebaseApp {
 }
 
 let firestoreInstance: Firestore | null = null;
+let authInstance: Auth | null = null;
 
 /**
  * Get Firestore instance (singleton). Safe to call on client and in components.
@@ -26,6 +28,16 @@ export function getDb(): Firestore {
     firestoreInstance = getFirestore(getApp());
   }
   return firestoreInstance;
+}
+
+/**
+ * Get Firebase Auth instance (for Google Sign-In on client).
+ */
+export function getAuthInstance(): Auth {
+  if (!authInstance) {
+    authInstance = getAuth(getApp());
+  }
+  return authInstance;
 }
 
 export { getApp };

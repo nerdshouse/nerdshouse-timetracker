@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
-import { hashPassword } from "@/lib/auth/password";
 import { logActivity } from "@/lib/activity";
 
 export async function GET() {
@@ -28,19 +27,17 @@ export async function POST(request: NextRequest) {
   if (!client) return NextResponse.json({ error: "Client account not found" }, { status: 404 });
 
   const body = await request.json();
-  const { name, email, password } = body;
-  if (!name || !email || !password) return NextResponse.json({ error: "name, email and password required" }, { status: 400 });
+  const { name, email } = body;
+  if (!name || !email) return NextResponse.json({ error: "name and email required" }, { status: 400 });
 
   const existing = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
   if (existing) return NextResponse.json({ error: "A user with this email already exists" }, { status: 400 });
 
-  const passwordHash = await hashPassword(password);
   const user = await prisma.user.create({
     data: {
       name: name.trim(),
       email: email.trim().toLowerCase(),
       role: "CLIENT",
-      passwordHash,
     },
   });
   await prisma.clientTeamMember.create({

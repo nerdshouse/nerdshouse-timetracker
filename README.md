@@ -8,6 +8,7 @@ Full-stack web app for a software development company: track time, tasks, and bi
 - **Prisma** + **SQLite** (dev). Use PostgreSQL in production by changing `prisma/schema.prisma` datasource and `DATABASE_URL`.
 - **Firebase / Firestore** (optional): client SDK in `src/lib/firebase.ts` + `firestore.ts`; server-side Admin in `src/lib/firebase-admin.ts` + `firestore-server.ts`. Use for real-time data, backups, or extra collections. Core app data stays in Prisma.
 - **Session**: cookie-based (JWT via `jose`). Set `SESSION_SECRET` in production.
+- **Auth**: Google Sign-In only (Firebase Auth). Users must be added by an admin (Owner) with their email; they then sign in with that Google account and get the assigned role.
 - **Lucide React** for icons.
 
 ## Setup
@@ -21,7 +22,9 @@ Ensure `.env` has:
 
 - `DATABASE_URL="file:./dev.db"` (SQLite). For PostgreSQL: `postgresql://user:pass@host:5432/dbname`
 - `SESSION_SECRET` (optional for dev)
-- For server-side Firestore: `GOOGLE_APPLICATION_CREDENTIALS` (path to service account JSON) or `FIREBASE_ADMIN_PROJECT_ID` + `FIREBASE_ADMIN_CLIENT_EMAIL` + `FIREBASE_ADMIN_PRIVATE_KEY`. See `.env.example`.
+- For server-side Firestore: `GOOGLE_APPLICATION_CREDENTIALS` (path to service account JSON) or `FIREBASE_ADMIN_*` env vars. See `.env.example`.
+
+**Google Sign-In (required for login):** In [Firebase Console](https://console.firebase.google.com) → your project → **Build** → **Authentication** → **Sign-in method** → enable **Google**. Add your app domain (e.g. `localhost`, your Vercel domain) to authorized domains.
 
 Create DB and seed:
 
@@ -36,9 +39,11 @@ Run dev server:
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). You’ll be redirected to **Login**. Choose a user to continue.
+Open [http://localhost:3000](http://localhost:3000). You’ll be redirected to **Login**. Sign in with Google using an email that exists in the seed (or add users as Owner first).
 
 ## Seed users
+
+After seeding, these emails can sign in with Google (the Google account email must match). For local testing, use Google accounts that have these addresses, or add your own email as Owner via Prisma/DB and sign in with that Google account.
 
 | Name            | Email                 | Role      |
 |-----------------|-----------------------|-----------|
@@ -59,7 +64,7 @@ Seed also creates 2 projects (E-Commerce Platform, CRM Dashboard), 5 tasks, 4 ti
 ## Routes
 
 - `/` – Redirects to role dashboard or `/login`
-- `/login` – Pick user (no password in seed)
+- `/login` – Google Sign-In only. Access is limited to emails added by an admin (Owner).
 - `/owner` – Owner dashboard (tabs: Overview, Projects, Billing, Time Logs, Activity, Team)
 - `/developer` – Developer dashboard (tasks, timers)
 - `/client` – Client dashboard (tabs: Projects, Budget)
