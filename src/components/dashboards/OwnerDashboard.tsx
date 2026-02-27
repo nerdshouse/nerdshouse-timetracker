@@ -203,7 +203,7 @@ export function OwnerDashboard({ session }: { session: SessionPayload }) {
     <SidebarLayout session={session} navItems={navLinks} accent="teal">
       <div className="mx-auto max-w-5xl">
         {tab === "overview" && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-slide-up">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard label="Projects" value={projects.length} subtext="Total projects" icon={FolderKanban} iconBg="bg-teal-50" />
               <StatCard label="Pending tasks" value={pendingTasks} subtext={`of ${totalTasks} total`} icon={LayoutDashboard} iconBg="bg-amber-50" />
@@ -236,12 +236,12 @@ export function OwnerDashboard({ session }: { session: SessionPayload }) {
         )}
 
         {tab === "projects" && (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-slide-up">
             <div className="flex justify-between">
               <h2 className="text-lg font-semibold text-slate-800">Projects</h2>
               <button
                 onClick={() => { setProjectModalEdit(null); setProjectModalOpen(true); }}
-                className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+                className="rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-teal-700"
               >
                 Add project
               </button>
@@ -253,6 +253,7 @@ export function OwnerDashboard({ session }: { session: SessionPayload }) {
                 onEdit={() => { setProjectModalEdit(proj); setProjectModalOpen(true); }}
                 onAddTask={() => setTaskModalProjectId(proj.id)}
                 onAddTime={() => setAddTimeProject(proj)}
+                onDelete={refreshProjects}
               />
             ))}
             <Modal
@@ -475,31 +476,45 @@ function ProjectCard({
   onEdit,
   onAddTask,
   onAddTime,
+  onDelete,
 }: {
   project: Project;
   onEdit: () => void;
   onAddTask: () => void;
   onAddTime: () => void;
+  onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const contractValue = project.hourlyRate * project.totalHoursBought;
   const boughtDateStr = project.boughtDate ? new Date(project.boughtDate).toLocaleDateString() : null;
 
+  async function handleDelete() {
+    if (!confirm("Permanently delete this project and all its tasks and time logs?")) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, { method: "DELETE" });
+      if (res.ok) onDelete();
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md">
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between px-4 py-3 text-left"
+        className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-slate-50/50"
       >
         <div className="flex items-center gap-3">
           <span className="font-semibold text-slate-900">{project.name}</span>
           <span className="text-sm text-slate-500">{project.client.name}</span>
-          <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{project.status}</span>
+          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">{project.status}</span>
         </div>
         <span className="text-slate-400">{project.tasks.length} tasks</span>
       </button>
       {open && (
-        <div className="border-t border-slate-200 px-4 py-3">
+        <div className="border-t border-slate-200 px-4 py-3 transition-opacity duration-200 ease-out">
           <p className="mb-2 text-sm text-slate-600">{project.description || "—"}</p>
           <p className="mb-1 text-xs text-slate-500">
             Billing: {formatCurrency(project.hourlyRate)}/hr × {project.totalHoursBought}h = {formatCurrency(contractValue)}
@@ -508,19 +523,19 @@ function ProjectCard({
           <div className="mb-3 flex flex-wrap gap-2">
             <button
               onClick={onEdit}
-              className="rounded-lg bg-slate-200 px-2 py-1.5 text-sm hover:bg-slate-300"
+              className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-200"
             >
               Edit project
             </button>
             <button
               onClick={onAddTask}
-              className="rounded-lg bg-teal-100 px-2 py-1.5 text-sm text-teal-800 hover:bg-teal-200"
+              className="rounded-lg bg-teal-100 px-2.5 py-1.5 text-sm font-medium text-teal-800 transition hover:bg-teal-200"
             >
               Add task
             </button>
             <button
               onClick={onAddTime}
-              className="rounded-lg bg-green-100 px-2 py-1.5 text-sm text-green-800 hover:bg-green-200"
+              className="rounded-lg bg-green-100 px-2.5 py-1.5 text-sm font-medium text-green-800 transition hover:bg-green-200"
             >
               Add time
             </button>
@@ -533,9 +548,16 @@ function ProjectCard({
                 const logoUrl = (settings.value && settings.value.startsWith("http")) ? settings.value : (typeof window !== "undefined" ? `${window.location.origin}/nerdshouse-logo.png` : undefined);
                 await downloadProjectReportPdf(project, d.timeLogs || [], logoUrl, project.client?.name);
               }}
-              className="rounded-lg bg-slate-100 px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-200"
+              className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-200"
             >
               Download PDF
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="rounded-lg bg-red-50 px-2.5 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:opacity-50"
+            >
+              {deleting ? "Deleting…" : "Delete project"}
             </button>
           </div>
           <ul className="space-y-2">
@@ -1094,7 +1116,6 @@ function AddHoursToClientForm({
 function AddDeveloperForm({ onSave, onClose }: { onSave: () => void; onClose: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -1106,7 +1127,7 @@ function AddDeveloperForm({ onSave, onClose }: { onSave: () => void; onClose: ()
       const res = await fetch("/api/team/developers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), password: password || undefined }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim() }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -1139,17 +1160,8 @@ function AddDeveloperForm({ onSave, onClose }: { onSave: () => void; onClose: ()
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2"
+          placeholder="They sign in with Google using this email"
           required
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-slate-700">Password (optional; they can set later)</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2"
-          placeholder="Min 6 characters"
         />
       </div>
       {error && <p className="text-sm text-rose-600">{error}</p>}
@@ -1167,7 +1179,6 @@ function AddClientForm({ onSave, onClose }: { onSave: () => void; onClose: () =>
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [contactEmail, setContactEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -1183,7 +1194,6 @@ function AddClientForm({ onSave, onClose }: { onSave: () => void; onClose: () =>
           name: name.trim(),
           email: email.trim(),
           contactEmail: contactEmail.trim() || undefined,
-          password: password || undefined,
         }),
       });
       const data = await res.json();
@@ -1217,18 +1227,8 @@ function AddClientForm({ onSave, onClose }: { onSave: () => void; onClose: () =>
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2"
-          placeholder="Used to sign in"
+          placeholder="They sign in with Google using this email"
           required
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-slate-700">Password (optional; they can set later)</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2"
-          placeholder="Min 6 characters"
         />
       </div>
       <div>

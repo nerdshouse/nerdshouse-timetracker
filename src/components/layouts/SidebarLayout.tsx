@@ -39,9 +39,9 @@ export function SidebarLayout({ session, navItems, children, accent = "teal" }: 
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <aside className="fixed left-0 top-0 z-40 flex h-full w-56 flex-col border-r border-slate-200 bg-white">
-        <div className={`flex h-14 shrink-0 items-center gap-2 px-4 ${accentBg}`}>
+    <div className="flex min-h-screen bg-slate-50/95">
+      <aside className="fixed left-0 top-0 z-40 flex h-full w-56 flex-col border-r border-slate-200/80 bg-white/95 backdrop-blur-sm">
+        <div className={`flex h-14 shrink-0 items-center gap-2 px-4 transition-colors ${accentBg}`}>
           <Clock className="h-6 w-6 text-white" />
           <span className="font-semibold text-white">Time Tracker</span>
         </div>
@@ -52,20 +52,20 @@ export function SidebarLayout({ session, navItems, children, accent = "teal" }: 
               <Link
                 key={item.href}
                 href={item.href}
-                className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition ${active ? `${accentActive} text-white` : `text-slate-600 hover:bg-slate-100 ${accentHover} hover:text-white`}`}
+                className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${active ? `${accentActive} text-white` : `text-slate-600 hover:bg-slate-100 ${accentHover} hover:text-white`}`}
               >
                 {item.label}
               </Link>
             );
           })}
         </nav>
-        <div className="border-t border-slate-200 p-3">
+        <div className="border-t border-slate-200/80 p-3">
           <p className="truncate px-3 py-1 text-sm font-medium text-slate-700">{session.name}</p>
           <p className="truncate px-3 text-xs text-slate-500">{session.email}</p>
           <button
             type="button"
             onClick={handleLogout}
-            className="mt-2 w-full rounded-lg px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-100"
+            className="mt-2 w-full rounded-lg px-3 py-2 text-left text-sm text-slate-600 transition-colors hover:bg-slate-100"
           >
             Logout
           </button>

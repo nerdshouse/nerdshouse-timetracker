@@ -112,7 +112,7 @@ export function ClientDashboard({ session }: { session: SessionPayload }) {
           <h1 className="text-lg font-semibold text-slate-800">Client Dashboard</h1>
           <button
             onClick={() => setAssignTaskOpen(true)}
-            className="rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-green-700"
+            className="rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-green-700"
           >
             Assign task
           </button>
@@ -348,95 +348,12 @@ function ClientReportTab({
 }
 
 function ClientSettingsTab() {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setMessage(null);
-    if (newPassword !== confirmPassword) {
-      setMessage({ type: "error", text: "New passwords do not match." });
-      return;
-    }
-    if (newPassword.length < 6) {
-      setMessage({ type: "error", text: "New password must be at least 6 characters." });
-      return;
-    }
-    setSaving(true);
-    try {
-      const res = await fetch("/api/auth/credentials", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setMessage({ type: "error", text: data.error || "Failed to update password." });
-        return;
-      }
-      setMessage({ type: "success", text: "Password updated. You can use your new password next time you sign in." });
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } finally {
-      setSaving(false);
-    }
-  }
-
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm max-w-md">
-      <h2 className="text-lg font-semibold text-slate-800 mb-4">Change password</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-700">Current password</label>
-          <input
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700">New password</label>
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2"
-            minLength={6}
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700">Confirm new password</label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2"
-            minLength={6}
-            required
-          />
-        </div>
-        {message && (
-          <p className={`text-sm ${message.type === "success" ? "text-green-600" : "text-rose-600"}`}>
-            {message.text}
-          </p>
-        )}
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded-xl bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
-          >
-            {saving ? "Updating…" : "Update password"}
-          </button>
-        </div>
-      </form>
+      <h2 className="text-lg font-semibold text-slate-800 mb-4">Settings</h2>
+      <p className="text-sm text-slate-600">
+        You sign in with Google. To use a different account, sign out and sign in again with the desired Google account.
+      </p>
     </div>
   );
 }
@@ -446,7 +363,6 @@ function ClientTeamTab({ onRefresh }: { onRefresh: () => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -465,7 +381,7 @@ function ClientTeamTab({ onRefresh }: { onRefresh: () => void }) {
       const res = await fetch("/api/team/members", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), password }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim() }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -475,7 +391,6 @@ function ClientTeamTab({ onRefresh }: { onRefresh: () => void }) {
       setMembers((m) => [...m, data.user]);
       setName("");
       setEmail("");
-      setPassword("");
       setOpen(false);
       onRefresh();
     } finally {
@@ -512,11 +427,7 @@ function ClientTeamTab({ onRefresh }: { onRefresh: () => void }) {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" required />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2" placeholder="They sign in with Google" required />
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
             <div className="flex justify-end gap-2">
